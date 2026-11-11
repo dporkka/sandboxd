@@ -385,6 +385,23 @@ export interface AgentInstanceInput {
   telegram_allowed_users?: string
 }
 
+export interface BuildCoachInput {
+  name: string
+  idea: string
+  problem: string
+  audience: string
+  mvpFeatures: string
+  stack: string
+  timeline: string
+}
+
+export interface BuildCoachBrief {
+  project_id: string
+  dashboard_url: string
+  documents_included: number
+  prompt: string
+}
+
 export const api = {
   listAgentCatalogEntrys: () =>
     req<{ packages: AgentCatalogEntry[] }>('GET', '/v1/agent-catalog').then((r) => r.packages || []),
@@ -411,6 +428,9 @@ export const api = {
   startUpgrade: (target: string) => req<UpgradeState>('POST', '/v1/upgrade', { target }),
   listApps: () => req<{ apps: App[] }>('GET', '/v1/apps').then((r) => r.apps || []),
   listPresets: () => req<{ presets: Preset[] }>('GET', '/v1/presets').then((r) => r.presets || []),
+  getBuildCoachStatus: () => req<{ enabled: boolean }>('GET', '/v1/build-coach'),
+  generateBuildCoachBrief: (input: BuildCoachInput) =>
+    req<BuildCoachBrief>('POST', '/v1/build-coach/brief', input),
   getSettings: () => req<Settings>('GET', '/v1/settings'),
   getAgentModels: (agent: string) =>
     req<{ models: { id: string; name: string; context_window?: number }[]; source: string }>(

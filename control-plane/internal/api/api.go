@@ -35,9 +35,13 @@ import (
 
 // Server bundles the collaborators the handlers need.
 type Server struct {
-	ModelProviders *modelprovider.Service
-	Store          *store.Store
-	Docker         *docker.Client
+	// BuildCoach integration is opt-in and server-side only.
+	BuildCoachURL    string
+	BuildCoachAPIKey string
+	BuildCoachClient *http.Client
+	ModelProviders   *modelprovider.Service
+	Store            *store.Store
+	Docker           *docker.Client
 	// Upgrade runs in-place upgrades via a detached upgrader container
 	// (POST /v1/upgrade). nil = feature unavailable (returns 409 with CLI hint).
 	Upgrade       *upgrade.Manager
@@ -290,6 +294,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/agents/{provider}/import", s.observe("POST /v1/agents/{provider}/import", s.v1AgentImport))
 	mux.HandleFunc("POST /v1/agents/{provider}/api-key", s.observe("POST /v1/agents/{provider}/api-key", s.v1AgentAPIKey))
 	mux.HandleFunc("POST /v1/agents/{provider}/disconnect", s.observe("POST /v1/agents/{provider}/disconnect", s.v1AgentDisconnect))
+	mux.HandleFunc("GET /v1/build-coach", s.observe("GET /v1/build-coach", s.v1BuildCoachStatus))
+	mux.HandleFunc("POST /v1/build-coach/brief", s.observe("POST /v1/build-coach/brief", s.v1GenerateBuildCoachBrief))
 	mux.HandleFunc("GET /v1/presets", s.observe("GET /v1/presets", s.v1ListPresets))
 	mux.HandleFunc("POST /v1/git-credentials", s.observe("POST /v1/git-credentials", s.v1CreateGitCredential))
 	mux.HandleFunc("GET /v1/git-credentials", s.observe("GET /v1/git-credentials", s.v1ListGitCredentials))

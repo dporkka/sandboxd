@@ -87,6 +87,10 @@ services:
       DO_NOT_TRACK: ${DO_NOT_TRACK:-}
       SANDBOXD_POSTHOG_HOST: ${SANDBOXD_POSTHOG_HOST:-}
       SANDBOXD_POSTHOG_KEY: ${SANDBOXD_POSTHOG_KEY:-}
+      # Optional AI Build Coach integration. Keep its API key in the control plane,
+      # never in app sandbox environments or the console.
+      SANDBOXD_BUILD_COACH_URL: ${SANDBOXD_BUILD_COACH_URL:-}
+      SANDBOXD_BUILD_COACH_API_KEY: ${SANDBOXD_BUILD_COACH_API_KEY:-}
       SANDBOXD_INSTALL_METHOD: ${SANDBOXD_INSTALL_METHOD:-unknown}
       # Set by sandboxd Cloud to join privacy-safe usage buckets to the
       # subscriber funnel. It is empty for ordinary self-hosted installs.

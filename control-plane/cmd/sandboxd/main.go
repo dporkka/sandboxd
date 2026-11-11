@@ -534,6 +534,8 @@ func main() {
 	}
 
 	server := &api.Server{
+		BuildCoachURL:     os.Getenv("SANDBOXD_BUILD_COACH_URL"),
+		BuildCoachAPIKey:  os.Getenv("SANDBOXD_BUILD_COACH_API_KEY"),
 		Store:             st,
 		Secrets:           secretsCipher,
 		ModelProviders:    modelProviders,

@@ -56,6 +56,11 @@ export function BuilderHome({
   const [preset, setPreset] = useState(draft?.preset || '')
   const [panel, setPanel] = useState<'stack' | 'agent' | 'project' | null>(null)
   const [busy, setBusy] = useState('')
+  const [coachEnabled, setCoachEnabled] = useState(false)
+  const [planFirst, setPlanFirst] = useState(false)
+  const [problem, setProblem] = useState('')
+  const [audience, setAudience] = useState('')
+  const [mvpFeatures, setMvpFeatures] = useState('')
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Record<string, string>>({})
@@ -66,6 +71,17 @@ export function BuilderHome({
   useEffect(() => {
     saveDraft({ prompt, name, choice, preset })
   }, [prompt, name, choice, preset, saveDraft])
+
+  useEffect(() => {
+    let alive = true
+    // Optional backend capability; never send the Build Coach API key to the browser.
+    if (typeof api.getBuildCoachStatus === 'function') {
+      api.getBuildCoachStatus()
+        .then((status) => { if (alive) setCoachEnabled(status.enabled) })
+        .catch(() => { if (alive) setCoachEnabled(false) })
+    }
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -112,6 +128,21 @@ export function BuilderHome({
     setBusy('Creating your app…')
     const title = name.trim() || prompt.trim().split(/\s+/).slice(0, 6).join(' ') || 'Untitled app'
     try {
+      let buildPrompt = prompt.trim()
+      if (planFirst && coachEnabled) {
+        setBusy('Generating your implementation plan…')
+        const brief = await api.generateBuildCoachBrief({
+          name: title.slice(0, 80),
+          idea: prompt.trim(),
+          problem: problem.trim(),
+          audience: audience.trim(),
+          mvpFeatures: mvpFeatures.trim(),
+          stack: presets.find((p) => p.id === preset)?.label || STACK_LABELS[guess.preset],
+          timeline: 'First working MVP',
+        })
+        buildPrompt = brief.prompt
+      }
+      setBusy('Creating your app…')
       const app = await api.createApp({
         name: title.slice(0, 80),
         description: prompt.trim().slice(0, 2000),
@@ -129,7 +160,7 @@ export function BuilderHome({
       }
       reload()
       saveDraft(undefined)
-      onCreated(app.id, { ...choice, prompt: prompt.trim() })
+      onCreated(app.id, { ...choice, prompt: buildPrompt })
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -142,6 +173,10 @@ export function BuilderHome({
     `${a.name} ${a.description}`.toLowerCase().includes(query.toLowerCase()),
   )
   const blocked = !!prompt.trim() && choiceBlocked(choice, providers, agents)
+  const planIncomplete = planFirst && (
+    prompt.trim().length > 500 || problem.trim().length < 3 ||
+    audience.trim().length < 3 || mvpFeatures.trim().length < 3
+  )
   return (
     <div className="builder-home">
       <section className="build-hero">
@@ -216,13 +251,45 @@ export function BuilderHome({
             <button
               className="build-button"
               onClick={() => void create()}
-              disabled={!!busy || blocked || !prompt.trim()}
+              disabled={!!busy || blocked || !prompt.trim() || planIncomplete}
               data-testid="build-app"
             >
               {busy || 'Build app'}
               <Icon name="arrow" size={18} />
             </button>
           </div>
+          {coachEnabled && (
+            <div className="build-coach-option">
+              <label className="build-coach-toggle">
+                <input
+                  type="checkbox"
+                  data-testid="build-coach-toggle"
+                  checked={planFirst}
+                  disabled={!!busy}
+                  onChange={(e) => setPlanFirst(e.target.checked)}
+                />
+                Plan first with AI Build Coach
+              </label>
+              {planFirst && (
+                <div className="build-coach-fields">
+                  <p>A structured requirements brief will guide the coding agent before it builds your app.</p>
+                  <label className="form-field">
+                    Problem to solve
+                    <Input value={problem} onChange={(e) => setProblem(e.target.value)} maxLength={2000} disabled={!!busy} />
+                  </label>
+                  <label className="form-field">
+                    Target users
+                    <Input value={audience} onChange={(e) => setAudience(e.target.value)} maxLength={1000} disabled={!!busy} />
+                  </label>
+                  <label className="form-field">
+                    MVP features
+                    <Input value={mvpFeatures} onChange={(e) => setMvpFeatures(e.target.value)} maxLength={2000} disabled={!!busy} />
+                  </label>
+                  {prompt.trim().length > 500 && <p role="note">Shorten your idea to 500 characters to use AI Build Coach.</p>}
+                </div>
+              )}
+            </div>
+          )}
           {panel && (
             <div className="composer-panel">
               <div className="panel-heading">
