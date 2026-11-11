@@ -31,11 +31,9 @@ type buildCoachDocument struct {
 	Content string `json:"content"`
 }
 type buildCoachCreated struct {
-	ProjectID    string `json:"projectId"`
-	DashboardURL string `json:"dashboardUrl"`
-}
-type buildCoachProject struct {
-	Documents []buildCoachDocument `json:"documents"`
+	ProjectID    string               `json:"projectId"`
+	DashboardURL string               `json:"dashboardUrl"`
+	Documents    []buildCoachDocument `json:"documents"`
 }
 
 var coachIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,128}$`)
@@ -102,7 +100,13 @@ func (s *Server) buildCoachJSON(ctxReq *http.Request, origin *url.URL, method, p
 	if client == nil {
 		client = &http.Client{Timeout: 90 * time.Second}
 	}
-	res, err := client.Do(req)
+	// Never forward the privileged x-api-key header through HTTP redirects,
+	// even to a sibling domain or a host named by a compromised upstream.
+	bounded := *client
+	bounded.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	res, err := bounded.Do(req)
 	if err != nil {
 		return err
 	}
@@ -178,12 +182,9 @@ func (s *Server) v1GenerateBuildCoachBrief(w http.ResponseWriter, r *http.Reques
 		writeV1Err(w, http.StatusBadGateway, "planner_error", "AI Build Coach returned an invalid brief")
 		return
 	}
-	var loaded buildCoachProject
-	if err := s.buildCoachJSON(r, origin, http.MethodGet, "/api/projects/"+url.PathEscape(created.ProjectID), nil, &loaded); err != nil {
-		writeV1Err(w, http.StatusBadGateway, "planner_error", "AI Build Coach brief could not be loaded; no application was created")
-		return
-	}
-	prompt, selected := buildCoachPrompt(strings.TrimSpace(input.Idea), loaded.Documents)
+	// AI Build Coach now returns generated Markdown in its authenticated
+	// create response. Do not call the public /api/projects/{id} read API.
+	prompt, selected := buildCoachPrompt(strings.TrimSpace(input.Idea), created.Documents)
 	if selected == 0 {
 		writeV1Err(w, http.StatusBadGateway, "planner_error", "AI Build Coach returned no implementation documents; no application was created")
 		return

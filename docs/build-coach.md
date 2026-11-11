@@ -23,8 +23,8 @@ before enabling this feature on any shared deployment.
 1. A user checks **Plan first**, enters the problem, audience, and MVP features,
    and submits the idea (500 characters maximum in planning mode).
 2. The sandboxd API calls AI Build Coach `POST /api/v1/briefs` with a server-side
-   `x-api-key`, then loads its generated documents from
-   `GET /api/projects/{projectId}`.
+   `x-api-key`; the authenticated creation response contains the generated
+   documents directly, without any public project read.
 3. Only implementation-related documents are included in a bounded (24 KB
    maximum additional context) agent prompt. The market-validation and other
    non-implementation documents are intentionally excluded.
@@ -37,8 +37,8 @@ sandbox. The server includes generic errors without upstream response bodies.
 
 **Current limitations:** This is a first-party integration for trusted operators,
 not a public multi-tenant billing proxy. The external Build Coach service has
-its own request quota and currently serves created documents at a project-ID
-endpoint; operators should treat generated briefs as sensitive and evaluate
-the upstream project's access policy before accepting confidential prompts.
+its own request quota; its project read and export routes must be ownership-
+checked before accepting confidential prompts. A companion security PR in
+`dev-plan` adds those checks. Redirects are not followed with the developer key.
 The planning step is synchronous and can take tens of seconds; publication,
 strong multi-tenant sandbox isolation, and managed databases are separate work.
