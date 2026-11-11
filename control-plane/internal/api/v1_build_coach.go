@@ -126,8 +126,8 @@ func buildCoachPrompt(original string, docs []buildCoachDocument) (string, int) 
 	for _, d := range docs {
 		slug := strings.ToLower(strings.ReplaceAll(d.Slug, "_", "-"))
 		switch slug {
-		case "product-requirements", "technical-specification", "database-schema",
-			"api-routes", "ui-screens", "mvp-scope", "qa-checklist", "app-flow":
+		case "prd", "spec", "app-flow", "product-requirements", "technical-specification",
+			"database-schema", "api-routes", "ui-screens", "mvp-scope", "qa-checklist":
 		default:
 			continue
 		}
