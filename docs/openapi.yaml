@@ -42,6 +42,63 @@ paths:
                 properties:
                   version: { type: string, example: v0.3.15 }
                   commit: { type: string, example: 1a2b3c4d5e6f }
+  /v1/build-coach:
+    get:
+      operationId: getBuildCoachStatus
+      tags: [apps]
+      summary: Check whether optional AI Build Coach planning is configured
+      responses:
+        "200":
+          description: Enabled flag only, never secrets.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled]
+                properties:
+                  enabled: { type: boolean }
+  /v1/build-coach/brief:
+    post:
+      operationId: generateBuildCoachBrief
+      tags: [apps]
+      summary: Generate an implementation brief before app creation
+      description: >
+        Opt-in. Proxies to the configured Build Coach origin server-side.
+        The developer API key never enters the console or app sandboxes.
+        The returned prompt contains selected, bounded planning documents.
+        No sandboxd app is created on planning failure.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idea, problem, audience, mvpFeatures, stack, timeline]
+              properties:
+                name: { type: string, maxLength: 200 }
+                idea: { type: string, minLength: 3, maxLength: 500 }
+                problem: { type: string, minLength: 3, maxLength: 2000 }
+                audience: { type: string, minLength: 3, maxLength: 1000 }
+                mvpFeatures: { type: string, minLength: 3, maxLength: 2000 }
+                stack: { type: string, minLength: 1, maxLength: 500 }
+                timeline: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "200":
+          description: Generated brief and agent-ready prompt.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project_id, dashboard_url, documents_included, prompt]
+                properties:
+                  project_id: { type: string }
+                  dashboard_url: { type: string }
+                  documents_included: { type: integer }
+                  prompt: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
   /v1/settings:
     get:
       operationId: getSettings
